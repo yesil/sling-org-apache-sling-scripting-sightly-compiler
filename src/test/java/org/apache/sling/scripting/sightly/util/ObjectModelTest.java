@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Vector;
 
 import org.apache.sling.scripting.sightly.compiler.expression.nodes.BinaryOperator;
@@ -69,6 +70,8 @@ public class ObjectModelTest {
         assertTrue(ObjectModel.toBoolean(new Bag<>(testArray)));
         assertFalse(ObjectModel.toBoolean(new Bag<>(new Integer[]{})));
         assertTrue(ObjectModel.toBoolean(new Date()));
+        assertTrue(ObjectModel.toBoolean(Optional.of("Object")));
+        assertFalse(ObjectModel.toBoolean(Optional.empty()));
     }
 
     @Test
@@ -166,13 +169,19 @@ public class ObjectModelTest {
         Person johnDoe = AdultFactory.createAdult("John", "Doe");
         assertEquals("Expected to be able to access public static final constants.", 1l, ObjectModel.resolveProperty(johnDoe, "CONSTANT"));
         assertNull("Did not expect to be able to access public fields from package protected classes.", ObjectModel.resolveProperty(johnDoe,
-                "TODAY"));
+            "TODAY"));
         assertEquals("Expected to be able to access an array's length property.", 3, ObjectModel.resolveProperty(testArray, "length"));
         assertNotNull("Expected not null result for invocation of interface method on implementation class.",
-                ObjectModel.resolveProperty(johnDoe, "lastName"));
+            ObjectModel.resolveProperty(johnDoe, "lastName"));
         assertNull("Expected null result for public method available on implementation but not exposed by interface.", ObjectModel
-                .resolveProperty(johnDoe, "fullName"));
+            .resolveProperty(johnDoe, "fullName"));
         assertNull("Expected null result for inexistent method.", ObjectModel.resolveProperty(johnDoe, "nomethod"));
+    }
+
+    @Test
+    public void testResolvePropertyOptional() {
+        assertEquals(Optional.of("test"), ObjectModel.resolveProperty(new OptionalTest(), "name"));
+        assertEquals(Optional.empty(), ObjectModel.resolveProperty(new OptionalTest(), "age"));
     }
 
     @Test
@@ -237,6 +246,15 @@ public class ObjectModelTest {
 
                 }
             };
+        }
+    }
+
+    public class OptionalTest {
+        public Optional<String> getName() {
+            return Optional.of("test");
+        }
+        public Optional<String> getAge() {
+            return Optional.empty();
         }
     }
 }

@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -111,16 +112,23 @@ public final class ObjectModel {
             resolved = getIndex(target, ((Number) property).intValue());
         }
         if (resolved == null) {
-            String propertyName = toString(property);
-            if (StringUtils.isNotEmpty(propertyName)) {
-                if (target instanceof Map) {
-                    resolved = ((Map) target).get(property);
+            if (target instanceof Optional) {
+                Optional  optionalTarget= (Optional) target;
+                if (optionalTarget.isPresent()) {
+                    resolved = resolveProperty(optionalTarget.get(), property);
                 }
-                if (resolved == null) {
-                    resolved = getField(target, propertyName);
-                }
-                if (resolved == null) {
-                    resolved = invokeBeanMethod(target, propertyName);
+            } else {
+                String propertyName = toString(property);
+                if (StringUtils.isNotEmpty(propertyName)) {
+                    if (target instanceof Map) {
+                        resolved = ((Map) target).get(property);
+                    }
+                    if (resolved == null) {
+                        resolved = getField(target, propertyName);
+                    }
+                    if (resolved == null) {
+                        resolved = invokeBeanMethod(target, propertyName);
+                    }
                 }
             }
         }
@@ -138,6 +146,7 @@ public final class ObjectModel {
      *     <li>if the {@code object} is a {@link Collection} or a {@link Map}, the method will return {@code true} only if the collection /
      *     map is not empty</li>
      *     <li>if the object is an array, the method will return {@code true} only if the array is not empty</li>
+     *     <li>if the object is a {@Optional}, the method will return {@code true} only if the optional is not empty</li>
      * </ul>
      *
      * @param object the target object
@@ -174,6 +183,10 @@ public final class ObjectModel {
 
         if (object instanceof Iterator<?>) {
             return ((Iterator<?>) object).hasNext();
+        }
+
+        if (object instanceof Optional) {
+            return ((Optional) object).isPresent();
         }
 
         return !(object instanceof Object[]) || ((Object[]) object).length > 0;
@@ -226,6 +239,11 @@ public final class ObjectModel {
                 output = object.toString();
             } else if (object instanceof Enum) {
                 return ((Enum) object).name();
+            } else if (object instanceof Optional) {
+                Optional optionalObject = (Optional) object;
+                if(optionalObject.isPresent()){
+                    output = optionalObject.get().toString();
+                }
             } else {
                 Collection<?> col = toCollection(object);
                 output = collectionToString(col);
